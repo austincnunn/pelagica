@@ -1,13 +1,14 @@
 services:
     pelagica:
-        build:
-            context: .
-            dockerfile: Dockerfile
+        # Built by .github/workflows/ghcr-build.yml. To build from source, use docker-compose.local.yml
+        image: ghcr.io/austincnunn/pelagica:latest
         container_name: pelagica
         ports:
             - '8080:80'
         volumes:
             - ./config:/config
+        # environment:
+        #     - SERVER_ADDRESS=http://your-jellyfin-or-emby-server:8096 # prefills the login screen
         restart: unless-stopped
         healthcheck:
             test:
