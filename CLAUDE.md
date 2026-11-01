@@ -63,6 +63,7 @@ CI (`.github/workflows/lint.yml`) only runs ESLint + `prettier --check` in `fron
   - `Likes` is ignored
   - media source ids are `mediasource_<itemId>` (use `ItemId`)
   - missing images return 500
+  - HLS transcodes restart with timestamps from 0 on resume/seek, which video.js can't realign in fMP4. Emby gets TS segments with H.264 only (`buildDeviceProfile` in `usePlaybackInfo.ts`)
 - Every app must call `setClientInfo({ name, version, platform })` at startup. `getPlatform()` / `getPlatformCapabilities()` drive platform branching (direct-play codecs, navigation adapter).
 
 ### Admin config (`AppConfig`)

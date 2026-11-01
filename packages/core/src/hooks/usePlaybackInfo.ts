@@ -4,7 +4,7 @@ import { getMediaInfoApi } from '@jellyfin/sdk/lib/utils/api/media-info-api';
 import type { MediaSourceInfo } from '@jellyfin/sdk/lib/generated-client/models';
 import { getRetryConfig } from '../utils/authErrorHandler';
 import { detectSupportedCodecs } from '../utils/videoCodecDetection';
-import { getPlatformCapabilities } from '../api/jellyfinClient';
+import { getPlatformCapabilities, isEmbyServer } from '../api/jellyfinClient';
 
 export type PlayMethod = 'DirectPlay' | 'DirectStream' | 'Transcode';
 
@@ -60,11 +60,15 @@ function buildDeviceProfile(options?: { liveTvContainer?: boolean; excludeHevc?:
         });
     }
 
+    // Emby restarts its transcoder on seek with timestamps from 0. video.js realigns TS segments
+    // after a seek but not fMP4 ones, so Emby gets TS only, and VHS can only transmux H.264 from TS.
+    const emby = isEmbyServer();
+
     const transcodingProfiles = [
         {
             Container: 'ts',
             Type: 'Video' as const,
-            VideoCodec: videoCodecs.join(','),
+            VideoCodec: emby ? 'h264' : videoCodecs.join(','),
             AudioCodec: 'aac',
             Protocol: 'hls' as const,
             Context: 'Streaming' as const,
@@ -74,7 +78,7 @@ function buildDeviceProfile(options?: { liveTvContainer?: boolean; excludeHevc?:
         },
     ];
 
-    if (!options?.liveTvContainer) {
+    if (!options?.liveTvContainer && !emby) {
         transcodingProfiles.unshift({
             Container: 'mp4',
             Type: 'Video' as const,
