@@ -2,6 +2,7 @@ import { getApi } from '../api/getApi';
 import { useMutation } from '@tanstack/react-query';
 import { getSessionApi } from '@jellyfin/sdk/lib/utils/api/session-api';
 import { useCurrentSessionId } from './useCurrentSessionId';
+import { isEmbyServer } from '../api/jellyfinClient';
 
 export function useReportViewingItem() {
     const { data: sessionId } = useCurrentSessionId();
@@ -10,6 +11,8 @@ export function useReportViewingItem() {
         mutationFn: async (itemId: string) => {
             if (!itemId) throw new Error('Item ID is required');
             if (!sessionId) throw new Error('Session ID is required');
+            // Emby has no viewing report; its /Sessions/{id}/Viewing remote-controls a client
+            if (isEmbyServer()) return itemId;
 
             const api = getApi();
             const sessionApi = getSessionApi(api);

@@ -85,7 +85,7 @@ import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import { useUpdateUserConfiguration } from '@pelagica/core';
-import { useAuthorizeQuickConnect } from '@pelagica/core';
+import { isEmbyServer, useAuthorizeQuickConnect } from '@pelagica/core';
 import { useSeerrLoginStatus } from '@pelagica/core';
 import { useSeerrLogout } from '@pelagica/core';
 import { SeerrLoginDialog } from '@/components/SeerrLoginDialog';
@@ -630,17 +630,20 @@ const UserMenu = () => {
                     </>
                 )}
 
-                <AuthorizeQuickConnectDialog
-                    onAuthorize={onAuthorizeQuickConnect}
-                    isLoading={quickConnectLoading}
-                    hasSuccess={quickConnectSuccess}
-                    hasError={quickConnectError}
-                    onReset={() => {
-                        setQuickConnectLoading(false);
-                        setQuickConnectSuccess(false);
-                        setQuickConnectError(false);
-                    }}
-                />
+                {/* Quick Connect is Jellyfin-only */}
+                {!isEmbyServer() && (
+                    <AuthorizeQuickConnectDialog
+                        onAuthorize={onAuthorizeQuickConnect}
+                        isLoading={quickConnectLoading}
+                        hasSuccess={quickConnectSuccess}
+                        hasError={quickConnectError}
+                        onReset={() => {
+                            setQuickConnectLoading(false);
+                            setQuickConnectSuccess(false);
+                            setQuickConnectError(false);
+                        }}
+                    />
+                )}
 
                 {isAdmin && (
                     <>

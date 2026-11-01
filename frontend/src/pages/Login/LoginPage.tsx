@@ -6,7 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@radix-ui/react-label';
 import { Info, Server, TriangleAlert, User } from 'lucide-react';
 import {
+    detectServerType,
+    findBestServer,
     getJellyfinInstance,
+    getServerType,
+    serverTypeFromInfo,
+    type ServerType,
     useLogin,
     useQuickConnectInitiate,
     useQuickConnectStatus,
@@ -14,7 +19,9 @@ import {
     getQuickConnectUrl,
 } from '@pelagica/core';
 import { Spinner } from '@/components/ui/spinner';
+import { ToggleGroup } from 'radix-ui';
 import { useNavigate } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useConfig } from '@pelagica/core';
 import { useServerAddress } from '@pelagica/core';
@@ -25,6 +32,11 @@ import QRCode from 'react-qr-code';
 
 const DEMO_SERVER_URL = 'https://jellyfin.streamyfin.app';
 const DEMO_USERNAME = 'pelagica';
+
+// Every locale leaves the "Jellyfin" brand untranslated, so swap it for Emby servers
+function forServer(text: string, type: ServerType): string {
+    return type === 'emby' ? text.replaceAll('Jellyfin', 'Emby') : text;
+}
 
 const Disclaimer = ({ text }: { text: string | null | undefined }) => {
     if (!text) return null;
@@ -75,6 +87,18 @@ const LoginPage = () => {
     );
 
     const [splashScreenUrl, setSplashScreenUrl] = useState<string | null>(serverUrl);
+
+    // Quick Connect is Jellyfin-only
+    const { data: serverType } = useQuery({
+        queryKey: ['serverType', serverUrl],
+        queryFn: () => detectServerType(serverUrl),
+        enabled: step === 'login' && !!serverUrl,
+        staleTime: Infinity,
+    });
+
+    // The checkbox picks the wording until detection knows the real server type
+    const [chosenType, setChosenType] = useState<ServerType>(getServerType);
+    const loginType = serverType ?? chosenType;
 
     useEffect(() => {
         if (isDemo) {
@@ -182,15 +206,16 @@ const LoginPage = () => {
 
         const servers =
             await getJellyfinInstance().discovery.getRecommendedServerCandidates(serverAddress);
-        const best = getJellyfinInstance().discovery.findBestServer(servers);
+        const best = findBestServer(servers);
 
         if (!best) {
-            setServerCheckError(t('could_not_find_server'));
+            setServerCheckError(forServer(t('could_not_find_server'), chosenType));
             setCheckingServer(false);
             return;
         }
 
         console.log('Found server:', best.address);
+        if (best.systemInfo) setChosenType(serverTypeFromInfo(best.systemInfo));
 
         saveServerUrl(best.address);
         setServerUrl(best.address);
@@ -275,19 +300,40 @@ const LoginPage = () => {
                             <Server size={24} className="text-gray-600" />
                         </div>
                         <CardTitle className="text-2xl font-bold">
-                            {t('connect_to_jellyfin')}
+                            {forServer(t('connect_to_jellyfin'), chosenType)}
                         </CardTitle>
                         <CardDescription>{t('enter_server_address')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={onSubmitServer}>
+                            <ToggleGroup.Root
+                                type="single"
+                                value={chosenType}
+                                // ignore the empty value radix sends when the active item is clicked again
+                                onValueChange={(value) =>
+                                    value && setChosenType(value as ServerType)
+                                }
+                                // TODO: add this key to @pelagica/i18n
+                                aria-label={t('server_type', { defaultValue: 'Server type' })}
+                                className="bg-muted mb-5 flex h-9 w-full items-center rounded-lg p-[3px]"
+                            >
+                                {(['jellyfin', 'emby'] as const).map((type) => (
+                                    <ToggleGroup.Item
+                                        key={type}
+                                        value={type}
+                                        className="text-muted-foreground hover:text-foreground data-[state=on]:bg-background data-[state=on]:text-foreground dark:data-[state=on]:bg-input/30 dark:data-[state=on]:border-input focus-visible:ring-ring/50 inline-flex h-full flex-1 items-center justify-center rounded-md border border-transparent text-sm font-medium transition-[color,box-shadow] outline-none focus-visible:ring-[3px] data-[state=on]:shadow-sm"
+                                    >
+                                        {type === 'emby' ? 'Emby' : 'Jellyfin'}
+                                    </ToggleGroup.Item>
+                                ))}
+                            </ToggleGroup.Root>
                             <Label htmlFor="server-address" className="mb-2 block font-medium">
                                 {t('server_address')}
                             </Label>
                             <Input
                                 id="server-address"
                                 type="text"
-                                placeholder="jellyfin.example.com"
+                                placeholder={`${chosenType}.example.com`}
                                 className="w-full"
                                 autoCapitalize="none"
                                 autoCorrect="off"
@@ -322,7 +368,7 @@ const LoginPage = () => {
                             <User size={24} className="text-gray-600" />
                         </div>
                         <CardTitle className="text-2xl font-bold">
-                            {t('login_to_jellyfin')}
+                            {forServer(t('login_to_jellyfin'), loginType)}
                         </CardTitle>
                         <CardDescription>{t('enter_credentials')}</CardDescription>
                     </CardHeader>
@@ -370,13 +416,15 @@ const LoginPage = () => {
                                     t('login')
                                 )}
                             </Button>
-                            <Button
-                                className="mt-2 w-full"
-                                variant="secondary"
-                                onClick={() => setStep('quickconnect')}
-                            >
-                                {t('quick_connect')}
-                            </Button>
+                            {serverType !== 'emby' && (
+                                <Button
+                                    className="mt-2 w-full"
+                                    variant="secondary"
+                                    onClick={() => setStep('quickconnect')}
+                                >
+                                    {t('quick_connect')}
+                                </Button>
+                            )}
                             {!(serverAddress && config.hideBackToServerButton) && (
                                 <Button
                                     variant="link"

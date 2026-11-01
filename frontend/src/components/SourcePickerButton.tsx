@@ -45,7 +45,10 @@ const SourcePickerButton = ({
             <Button className={hasMultipleSources ? 'rounded-r-none w-min' : 'w-min'} asChild>
                 <Link
                     to={buildPlayerUrl(
-                        selectedSource?.Id ?? itemId,
+                        // Jellyfin source ids are item ids; Emby's are "mediasource_<id>" with an ItemId
+                        (selectedSource as { ItemId?: string } | undefined)?.ItemId ??
+                            selectedSource?.Id ??
+                            itemId,
                         location.pathname + location.search
                     )}
                 >

@@ -4,6 +4,7 @@ import { getLibraryApi } from '@jellyfin/sdk/lib/utils/api/library-api';
 import type { SectionItemsConfig } from './useConfig';
 import { ItemFilter, type BaseItemKind } from '@jellyfin/sdk/lib/generated-client/models';
 import { getRetryConfig } from '../utils/authErrorHandler';
+import { isEmbyServer } from '../api/jellyfinClient';
 import type { ItemsQueryParams, ItemsQueryResult } from '../types/items';
 
 export function useSectionItems(
@@ -17,6 +18,11 @@ export function useSectionItems(
     const { data, isLoading, error } = useQuery({
         queryKey: ['sectionItems', config, params],
         queryFn: async () => {
+            // Emby ignores the Likes filter the watchlist relies on
+            if (config?.isInKefinTweaksWatchlist && isEmbyServer()) {
+                return { items: [], totalCount: 0 };
+            }
+
             const api = getApi();
             const itemsApi = getLibraryApi(api);
 

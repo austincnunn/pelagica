@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useNavigate } from '@/router';
 import { useTranslation } from 'react-i18next';
 import {
+    findBestServer,
     getJellyfinInstance,
     getServerUrl,
     saveServerUrl,
@@ -83,7 +84,7 @@ const Login = () => {
             try {
                 const servers =
                     await getJellyfinInstance().discovery.getRecommendedServerCandidates(input);
-                const best = getJellyfinInstance().discovery.findBestServer(servers);
+                const best = findBestServer(servers);
                 if (!best) {
                     setServerCheckError(t('login:could_not_find_server'));
                     return;

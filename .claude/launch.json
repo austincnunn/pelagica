@@ -1,0 +1,23 @@
+{
+    "version": "0.0.1",
+    "configurations": [
+        {
+            "name": "backend",
+            "runtimeExecutable": "sh",
+            "runtimeArgs": [
+                "-c",
+                "cd /Users/austin/Documents/GitHub/pelagica/backend && D=/private/tmp/claude-501/-Users-austin--claude-spares-spare-4Y8v5e/476ec359-20a6-4788-b706-851332ba6ff4/scratchpad/pelagica-backend && mkdir -p $D && APP_VERSION=4.14.0 LOG_LEVEL=debug ENABLE_AUTH=true LOG_FILE=$D/pelagica.log SERVERS_DIR=$D/servers STUDIOS_DB_DIR=$D/studios-db COLLECTOR_INSTANCE_ID_FILE=$D/instance_id COLLECTOR_STATS_CONSENT_FILE=$D/stats_consent COLLECTOR_PING_BASE_URL=http://localhost:4000 exec go run main.go"
+            ],
+            "port": 4321
+        },
+        {
+            "name": "frontend",
+            "runtimeExecutable": "sh",
+            "runtimeArgs": [
+                "-c",
+                "cd /Users/austin/Documents/GitHub/pelagica/frontend && exec /Users/austin/.nvm/versions/node/v22.23.3/bin/node node_modules/vite/bin/vite.js"
+            ],
+            "port": 3000
+        }
+    ]
+}

@@ -1,6 +1,6 @@
 import { getApi } from '../api/getApi';
 import { withBasePath } from '../utils/basePath';
-import { getAccessToken, getServerUrl } from '../utils/localstorageCredentials';
+import { getAccessToken, getServerUrl, getUserId } from '../utils/localstorageCredentials';
 import { getLibraryApi } from '@jellyfin/sdk/lib/utils/api/library-api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -124,6 +124,9 @@ async function fetchStudiosFromBackend({
         startIndex: String(startIndex),
     });
     if (search) params.set('search', search);
+    // the backend only uses this when it can't resolve the user itself (Emby)
+    const userId = getUserId();
+    if (userId) params.set('user_id', userId);
 
     const response = await fetch(withBasePath(`/api/studios?${params.toString()}`), {
         headers: {

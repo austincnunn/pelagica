@@ -165,6 +165,7 @@ func extractJellyfinToken(authorizationHeader string) string {
 func applyJellyfinAuthHeaders(req *http.Request, token string) {
 	req.Header.Set("ApiKey", token)
 	req.Header.Set("Authorization", `MediaBrowser Token="`+token+`"`)
+	req.Header.Set("X-Emby-Token", token)
 }
 
 func parseHexColorQuery(c fiber.Ctx, name, fallback string) (string, error) {
@@ -222,13 +223,17 @@ func buildStudiosCacheKey(jellyfinURL, token string) string {
 	return jellyfinURL + "\n" + token
 }
 
-func listStudiosFromJellyfin(jellyfinURL, token string) ([]models.StudioSummary, error) {
+func listStudiosFromJellyfin(jellyfinURL, token, fallbackUserID string) ([]models.StudioSummary, error) {
 	baseURL, err := url.Parse(jellyfinURL)
 	if err != nil {
 		return nil, err
 	}
 
 	userID, err := fetchJellyfinUserID(baseURL, token)
+	if err != nil && fallbackUserID != "" {
+		// Emby has no /Users/Me, so use the id the client sent
+		userID, err = fallbackUserID, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +360,7 @@ func fetchJellyfinUserID(baseURL *url.URL, token string) (string, error) {
 	return me.ID, nil
 }
 
-func getStudiosWithCache(jellyfinURL, token string) ([]models.StudioSummary, error) {
+func getStudiosWithCache(jellyfinURL, token, fallbackUserID string) ([]models.StudioSummary, error) {
 	cacheKey := buildStudiosCacheKey(jellyfinURL, token)
 	now := time.Now()
 
@@ -367,7 +372,7 @@ func getStudiosWithCache(jellyfinURL, token string) ([]models.StudioSummary, err
 		return entry.studios, nil
 	}
 
-	studios, err := listStudiosFromJellyfin(jellyfinURL, token)
+	studios, err := listStudiosFromJellyfin(jellyfinURL, token, fallbackUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -406,7 +411,7 @@ func GetStudios(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(models.APIError{Error: err.Error()})
 	}
 
-	studios, err := getStudiosWithCache(jellyfinURL, token)
+	studios, err := getStudiosWithCache(jellyfinURL, token, strings.TrimSpace(c.Query("user_id")))
 	if err != nil {
 		slog.Error("Failed to load studios", "error", err)
 		return c.Status(fiber.StatusBadGateway).JSON(models.APIError{Error: "Failed to load studios from Jellyfin: " + err.Error()})

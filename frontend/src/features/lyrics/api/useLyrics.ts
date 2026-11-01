@@ -2,7 +2,7 @@ import { getApi } from '@pelagica/core';
 import { useQuery } from '@tanstack/react-query';
 import { getLyricApi } from '@jellyfin/sdk/lib/utils/api/lyric-api';
 import type { LyricDto } from '@jellyfin/sdk/lib/generated-client/models';
-import { getRetryConfig } from '@pelagica/core';
+import { getRetryConfig, isEmbyServer } from '@pelagica/core';
 
 function getErrorStatus(error: unknown): number | undefined {
     if (!error || typeof error !== 'object') {
@@ -32,7 +32,7 @@ export function useLyrics(itemId: string | null | undefined) {
             const response = await lyricsApi.getLyrics({ itemId: itemId! });
             return response.data;
         },
-        enabled: !!itemId,
+        enabled: !!itemId && !isEmbyServer(), // the lyrics API is Jellyfin-only
         staleTime: 5 * 60_000,
         retry: (failureCount, error) => {
             if (getErrorStatus(error) === 404) {

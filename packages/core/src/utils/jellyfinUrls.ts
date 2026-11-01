@@ -1,5 +1,5 @@
 import { withBasePath } from './basePath';
-import { getAccessToken, getServerUrl } from './localstorageCredentials';
+import { getAccessToken, getServerType, getServerUrl } from './localstorageCredentials';
 import { getSupportedVideoCodecs } from './videoCodecDetection';
 import type { PlayMethod } from '../hooks/usePlaybackInfo';
 
@@ -12,6 +12,11 @@ function resolveCredentials(): Credentials | null {
     const server = getServerUrl();
     const token = getAccessToken();
     return server && token ? { server, token } : null;
+}
+
+// Emby only understands `api_key`, while newer Jellyfin may reject that legacy name.
+function tokenParam(): string {
+    return getServerType() === 'emby' ? 'api_key' : 'ApiKey';
 }
 
 export interface ImageSize {
@@ -157,7 +162,7 @@ export function getAudioStreamUrl(itemId: string, userId?: string) {
         const url = new URL(creds.server);
         url.pathname = appendPath(url.pathname, 'Audio', itemId, 'universal');
         if (userId) url.searchParams.append('UserId', userId);
-        url.searchParams.append('ApiKey', creds.token);
+        url.searchParams.append(tokenParam(), creds.token);
         url.searchParams.append('AudioCodec', 'aac');
         url.searchParams.append(
             'Container',
@@ -230,7 +235,7 @@ export function getVideoStreamUrl(
         const url = new URL(creds.server);
         url.pathname = appendPath(url.pathname, 'Videos', itemId, 'master.m3u8');
         url.searchParams.append('MediaSourceId', options.mediaSourceId || itemId);
-        url.searchParams.append('ApiKey', creds.token);
+        url.searchParams.append(tokenParam(), creds.token);
         url.searchParams.append('VideoCodec', getSupportedVideoCodecs());
         url.searchParams.append('AudioCodec', 'aac');
         url.searchParams.append('SegmentContainer', 'mp4');
@@ -273,7 +278,7 @@ export function getDirectStreamUrl(
         url.pathname = appendPath(url.pathname, 'Videos', itemId, `stream.${container}`);
         url.searchParams.append('Static', 'true');
         url.searchParams.append('MediaSourceId', options.mediaSourceId || itemId);
-        url.searchParams.append('ApiKey', creds.token);
+        url.searchParams.append(tokenParam(), creds.token);
 
         if (options.playSessionId !== undefined)
             url.searchParams.append('PlaySessionId', options.playSessionId);
@@ -371,7 +376,7 @@ export function getSubtitleUrl(
             '0',
             `Stream.${format}`
         );
-        url.searchParams.append('ApiKey', creds.token);
+        url.searchParams.append(tokenParam(), creds.token);
 
         return url.toString();
     } catch {
@@ -385,7 +390,7 @@ export function getAttachmentUrl(deliveryUrl: string) {
         if (!creds) return '';
 
         const url = new URL(deliveryUrl, creds.server);
-        url.searchParams.append('ApiKey', creds.token);
+        url.searchParams.append(tokenParam(), creds.token);
 
         return url.toString();
     } catch {
@@ -407,7 +412,7 @@ export function getTrickplayImageUrl(itemId: string, width: number, imageIndex: 
             width.toString(),
             `${imageIndex}.jpg`
         );
-        url.searchParams.append('ApiKey', creds.token);
+        url.searchParams.append(tokenParam(), creds.token);
         url.searchParams.append('MediaSourceId', itemId);
 
         return url.toString();
@@ -439,7 +444,7 @@ export function getDownloadurl(itemId: string) {
         const url = new URL(creds.server);
         url.pathname = appendPath(url.pathname, 'Items', itemId, 'Download');
         url.searchParams.append('MediaSourceId', itemId);
-        url.searchParams.append('ApiKey', creds.token);
+        url.searchParams.append(tokenParam(), creds.token);
 
         return url.toString();
     } catch {

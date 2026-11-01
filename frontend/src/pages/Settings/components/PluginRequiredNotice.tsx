@@ -24,7 +24,7 @@ import {
 import { ExternalAnchor } from '@/components/ExternalAnchor';
 
 interface PluginRequiredNoticeProps {
-    status: Extract<PelagicaPluginStatus, 'not-installed' | 'needs-restart'>;
+    status: Extract<PelagicaPluginStatus, 'not-installed' | 'needs-restart' | 'unsupported'>;
     installing: boolean;
     restarting: boolean;
     onInstall: () => void;
@@ -40,6 +40,28 @@ export const PluginRequiredNotice = ({
 }: PluginRequiredNoticeProps) => {
     const { t } = useTranslation('settings');
     const [restartDialogOpen, setRestartDialogOpen] = useState(false);
+
+    // TODO: add these keys to @pelagica/i18n, the English defaults show until then
+    if (status === 'unsupported') {
+        return (
+            <Empty>
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <Flag />
+                    </EmptyMedia>
+                    <EmptyTitle>
+                        {t('plugin_unsupported_title', { defaultValue: 'Not available on Emby' })}
+                    </EmptyTitle>
+                    <EmptyDescription>
+                        {t('plugin_unsupported_description', {
+                            defaultValue:
+                                'Pelagica settings are stored by the Pelagica Jellyfin plugin, which does not exist for Emby. The default layout is used instead.',
+                        })}
+                    </EmptyDescription>
+                </EmptyHeader>
+            </Empty>
+        );
+    }
 
     return status === 'needs-restart' ? (
         <Empty>

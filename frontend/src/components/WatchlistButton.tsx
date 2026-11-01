@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { useLike } from '@pelagica/core';
+import { isEmbyServer, useLike } from '@pelagica/core';
 import type { BaseItemDto } from '@jellyfin/sdk/lib/generated-client/models';
 import { Bookmark } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -21,7 +21,8 @@ const WatchListButton = ({
     const { t } = useTranslation('item');
     const { isLiked, toggleLike, isLoading } = useLike(item.Id);
 
-    if (showWatchlistButton === false) return null;
+    // Emby doesn't store likes, which the KefinTweaks watchlist is built on
+    if (showWatchlistButton === false || isEmbyServer()) return null;
 
     return (
         <Button

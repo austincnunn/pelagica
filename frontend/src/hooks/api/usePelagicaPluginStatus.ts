@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { getServerUrl, withBasePath } from '@pelagica/core';
+import { getServerUrl, isEmbyServer, withBasePath } from '@pelagica/core';
 import type { AppConfig } from '@pelagica/core';
 import {
     fetchPluginConfig,
@@ -13,12 +13,16 @@ import {
     savePluginConfig,
 } from '@pelagica/core';
 
-export type PelagicaPluginStatus = 'checking' | 'active' | 'needs-restart' | 'not-installed';
+export type PelagicaPluginStatus =
+    'checking' | 'active' | 'needs-restart' | 'not-installed' | 'unsupported';
 
 const INSTALL_POLL_TIMEOUT_MS = 30_000;
 const INSTALL_POLL_INTERVAL_MS = 2_000;
 
 async function resolvePluginStatus(serverUrl: string): Promise<PelagicaPluginStatus> {
+    // The Pelagica plugin only exists for Jellyfin
+    if (isEmbyServer()) return 'unsupported';
+
     const enabled = await fetchPluginEnabled(serverUrl);
     if (enabled) return 'active';
 
